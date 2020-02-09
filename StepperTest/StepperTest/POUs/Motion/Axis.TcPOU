@@ -2,6 +2,10 @@
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.2">
   <POU Name="Axis" Id="{24fff4e6-e39f-4350-bd18-ef00f5f91f03}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK Axis IMPLEMENTS I_AXIS
+VAR_IN_OUT CONSTANT
+	cMinPos : LREAL;
+	cMaxPos: LREAL;
+END_VAR
 VAR_INPUT
 	bEnable : BOOL;
 	bHalt : BOOL;
@@ -33,10 +37,18 @@ VAR
 	fbMcHalt : MC_Halt;
 	fbMcStop : MC_Stop;
 	fbMcReset : MC_Reset;
+	fbMcMoveAbsolute : MC_MoveAbsolute;
+	
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[fbMcStop(
+      <ST><![CDATA[fbMcMoveAbsolute(
+	Axis:= axisRef, 
+	Velocity:= 200, 
+);
+
+
+fbMcStop(
 	Axis:= axisRef, 
 	Execute:= bStop
 );
@@ -107,6 +119,21 @@ THEN
 	fbMcHome.Execute := FALSE;
 END_IF]]></ST>
     </Implementation>
+    <Method Name="MoveAbsolute" Id="{f47e21c3-cef3-4c6f-a3be-54a65a02bcdb}">
+      <Declaration><![CDATA[METHOD MoveAbsolute
+VAR_INPUT
+	lrPosition : LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF lrPosition < cMinPos OR lrPosition > cMaxPos
+THEN
+	RETURN;
+END_IF
+fbMcMoveAbsolute(Axis := axisRef, Execute := TRUE , Position := lrPosition);
+fbMcMoveAbsolute.Execute := FALSE;]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="PrepareCoupling" Id="{d7878975-8fc9-40ec-8586-907322a90143}">
       <Declaration><![CDATA[METHOD PrepareCoupling : I_Axis
 VAR_INPUT
@@ -200,6 +227,9 @@ END_IF
       </Implementation>
     </Method>
     <LineIds Name="Axis">
+      <LineId Id="223" Count="1" />
+      <LineId Id="227" Count="0" />
+      <LineId Id="220" Count="2" />
       <LineId Id="137" Count="1" />
       <LineId Id="134" Count="0" />
       <LineId Id="174" Count="0" />
@@ -242,6 +272,12 @@ END_IF
       <LineId Id="31" Count="0" />
       <LineId Id="33" Count="0" />
       <LineId Id="32" Count="0" />
+    </LineIds>
+    <LineIds Name="Axis.MoveAbsolute">
+      <LineId Id="8" Count="1" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="5" Count="1" />
     </LineIds>
     <LineIds Name="Axis.PrepareCoupling">
       <LineId Id="5" Count="1" />

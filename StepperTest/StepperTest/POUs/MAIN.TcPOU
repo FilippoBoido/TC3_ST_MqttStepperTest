@@ -19,10 +19,14 @@ VAR
 	sMessage : STRING;
 	evalIndex : INT;
 END_VAR
+VAR CONSTANT
+	cMinPos : LREAL := 0.0;
+	cMaxPos : LREAL := 300.0;
+END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[fbXAxis();
-fbYAxis();
+      <ST><![CDATA[fbXAxis(cMinPos := cMinPos , cMaxPos := cMaxPos);
+fbYAxis(cMinPos := cMinPos , cMaxPos := cMaxPos);
 
 IF bDecoupleXYAxis
 THEN
@@ -46,7 +50,6 @@ THEN
 		.StartHoming()
 	THEN
 		bHomeXYAxis := FALSE;
-		bHomingStarted := FALSE;
 	END_IF
 	
 END_IF
@@ -60,7 +63,6 @@ CASE diStep OF
 		THEN			
 			diStep := 10;
 		END_IF
-	
 	
 	10:
 	
@@ -82,10 +84,18 @@ CASE diStep OF
 		diStep:=30;
 	
 	30:
-	
+		
 		IF sMessage = 'cmd_home'
 		THEN
 			bHomeXYAxis := TRUE;
+			diStep := 10;
+		ELSIF sMessage = 'cmd_forw'
+		THEN
+			fbXAxis.MoveAbsolute(250);
+			diStep := 10;
+		ELSIF sMessage = 'cmd_backw'
+		THEN
+			fbXAxis.MoveAbsolute(50);
 			diStep := 10;
 		END_IF
 	
@@ -109,7 +119,7 @@ END_CASE]]></ST>
       <LineId Id="22" Count="0" />
       <LineId Id="16" Count="2" />
       <LineId Id="42" Count="0" />
-      <LineId Id="44" Count="1" />
+      <LineId Id="44" Count="0" />
       <LineId Id="43" Count="0" />
       <LineId Id="28" Count="0" />
       <LineId Id="14" Count="0" />
@@ -120,7 +130,7 @@ END_CASE]]></ST>
       <LineId Id="72" Count="0" />
       <LineId Id="74" Count="2" />
       <LineId Id="73" Count="0" />
-      <LineId Id="69" Count="2" />
+      <LineId Id="70" Count="1" />
       <LineId Id="78" Count="0" />
       <LineId Id="81" Count="4" />
       <LineId Id="80" Count="0" />
@@ -132,9 +142,17 @@ END_CASE]]></ST>
       <LineId Id="95" Count="0" />
       <LineId Id="92" Count="0" />
       <LineId Id="79" Count="0" />
-      <LineId Id="97" Count="4" />
+      <LineId Id="97" Count="3" />
+      <LineId Id="131" Count="0" />
       <LineId Id="103" Count="1" />
       <LineId Id="106" Count="1" />
+      <LineId Id="132" Count="0" />
+      <LineId Id="136" Count="0" />
+      <LineId Id="133" Count="0" />
+      <LineId Id="138" Count="0" />
+      <LineId Id="134" Count="1" />
+      <LineId Id="137" Count="0" />
+      <LineId Id="139" Count="0" />
       <LineId Id="105" Count="0" />
       <LineId Id="102" Count="0" />
       <LineId Id="67" Count="0" />
