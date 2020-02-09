@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.2">
+  <Itf Name="I_Axis" Id="{e29f8469-a3e8-4cfa-a5ee-f4f6afb467e5}">
+    <Declaration><![CDATA[INTERFACE I_Axis
+]]></Declaration>
+    <Method Name="PrepareDecoupling" Id="{54e06715-75df-426c-bd82-274c8cc90fa9}">
+      <Declaration><![CDATA[METHOD PrepareDecoupling : I_Axis
+VAR_INPUT
+	slaveAxis : REFERENCE TO AXIS_REF;
+	slaveStatus : REFERENCE TO ST_AXISSTATUS;
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="StartCoupling" Id="{2c151b5b-bdad-4017-b369-02a28ecd6e66}">
+      <Declaration><![CDATA[METHOD StartCoupling : I_Axis
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="StartDecoupling" Id="{06b60ea2-3f04-453a-b850-2a578a6457e0}">
+      <Declaration><![CDATA[METHOD StartDecoupling : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="StartHoming" Id="{365249dc-02da-41e0-bb2e-19d5dd02905e}">
+      <Declaration><![CDATA[METHOD StartHoming : BOOL;
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+  </Itf>
+</TcPlcObject>

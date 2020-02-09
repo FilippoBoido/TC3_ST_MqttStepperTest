@@ -1,0 +1,287 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.2">
+  <POU Name="Axis" Id="{24fff4e6-e39f-4350-bd18-ef00f5f91f03}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK Axis IMPLEMENTS I_AXIS
+VAR_INPUT
+	bEnable : BOOL;
+	bHalt : BOOL;
+	bStop : BOOL;
+	bReset : BOOL;
+END_VAR
+VAR_OUTPUT
+	axisRef : AXIS_REF;
+	fbMcReadStatus : MC_ReadStatus;
+END_VAR
+VAR
+	bCalibrationCam AT%I* :  BOOL;
+	
+	//Data for coupling operations
+	//--------------------------------------------------------------
+	
+	slaveAxis : REFERENCE TO AXIS_REF;
+	slaveStatus : REFERENCE TO ST_AXISSTATUS;
+	lrRatioNumerator : LREAL := 1;
+	uiRatioDenominator : UINT := 1;
+	
+	//--------------------------------------------------------------
+	
+	fbMcHome : MC_Home;
+	fbMcGearIn : MC_GearIn;
+	fbMcGearOut : MC_GearOut;
+	
+	fbMcPower : MC_Power;
+	fbMcHalt : MC_Halt;
+	fbMcStop : MC_Stop;
+	fbMcReset : MC_Reset;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fbMcStop(
+	Axis:= axisRef, 
+	Execute:= bStop
+);
+	
+fbMcHalt(
+	Axis:= axisRef, 
+	Execute:= bHalt
+);
+	
+fbMcReset(
+	Axis:= axisRef, 
+	Execute:= bReset
+);
+	
+fbMcPower(
+	Axis:= axisRef, 
+	Enable:= bEnable, 
+	Enable_Positive:= bEnable, 
+	Enable_Negative:= bEnable, 
+	Override:= , 
+	BufferMode:= , 
+	Options:= , 
+	Status=> , 
+	Busy=> , 
+	Active=> , 
+	Error=> , 
+	ErrorID=> 
+);
+
+fbMcReadStatus(
+	Axis:= axisRef, 
+	Enable:= TRUE, 
+);
+
+fbMcHome(
+	Axis:= axisRef, 
+	bCalibrationCam:= bCalibrationCam, 
+);
+
+IF 		__ISVALIDREF(slaveAxis)
+	AND __ISVALIDREF(slaveStatus)
+THEN
+
+	fbMcGearIn(
+		Master:= axisRef, 
+		Slave:= slaveAxis, 
+		RatioNumerator:= lrRatioNumerator, 
+		RatioDenominator:= uiRatioDenominator
+	);
+	
+	IF NOT fbMcGearIn.Busy
+	THEN
+		fbMcGearIn.Execute := FALSE;
+	END_IF
+	
+	
+	fbMcGearOut(Slave:= slaveAxis);
+	IF NOT fbMcGearOut.Busy
+	THEN
+		fbMcGearOut.Execute := FALSE;
+	END_IF
+	
+END_IF
+
+
+IF fbMcHome.Done
+THEN
+	fbMcHome.Execute := FALSE;
+END_IF]]></ST>
+    </Implementation>
+    <Method Name="PrepareCoupling" Id="{d7878975-8fc9-40ec-8586-907322a90143}">
+      <Declaration><![CDATA[METHOD PrepareCoupling : I_Axis
+VAR_INPUT
+	slaveAxis : REFERENCE TO AXIS_REF;
+	slaveStatus : REFERENCE TO ST_AXISSTATUS;
+	lrRatioNumerator : LREAL;
+	uiRatioDenominator : UINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[PrepareCoupling := THIS^;
+THIS^.slaveAxis REF= slaveAxis;
+THIS^.slaveStatus REF= slaveStatus;
+THIS^.lrRatioNumerator := lrRatioNumerator;
+THIS^.uiRatioDenominator := uiRatioDenominator;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="PrepareDecoupling" Id="{21d52ac6-f4dc-441d-aadf-f3c53372b8fe}">
+      <Declaration><![CDATA[METHOD PrepareDecoupling : I_Axis
+VAR_INPUT
+	slaveAxis : REFERENCE TO AXIS_REF;
+	slaveStatus : REFERENCE TO ST_AXISSTATUS;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[PrepareDecoupling := THIS^;
+THIS^.slaveAxis REF= slaveAxis;
+THIS^.slaveStatus REF= slaveStatus;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="StartCoupling" Id="{33e91c27-060b-4aba-a2bf-d064c83cf754}">
+      <Declaration><![CDATA[METHOD StartCoupling : I_Axis
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[StartCoupling := THIS^;
+IF NOT __ISVALIDREF(slaveStatus)
+THEN
+	RETURN;
+END_IF
+
+IF NOT slaveStatus.Coupled
+THEN
+	fbMcGearIn.Execute := TRUE;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="StartDecoupling" Id="{4837a0df-aaef-47d5-97eb-083f968790d7}">
+      <Declaration><![CDATA[METHOD StartDecoupling : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+IF NOT __ISVALIDREF(slaveStatus)
+THEN
+	RETURN;
+END_IF
+
+IF slaveStatus.Coupled
+THEN
+	fbMcGearOut.Execute := TRUE;
+ELSE
+	StartDecoupling := TRUE;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="StartHoming" Id="{d6df9a82-84a4-4ac0-b48c-1d732d0b93bd}">
+      <Declaration><![CDATA[METHOD StartHoming : BOOL;
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT fbMcGearIn.Execute
+	//AND fbMcReadStatus.Valid
+	//AND NOT fbMcReadStatus.Status.Homed 
+THEN
+	
+	fbMcHome.Execute := TRUE;
+	IF fbMcHome.Busy
+	THEN
+		fbMcHome.Execute := FALSE;
+		StartHoming := TRUE;
+	END_IF
+	
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="Axis">
+      <LineId Id="137" Count="1" />
+      <LineId Id="134" Count="0" />
+      <LineId Id="174" Count="0" />
+      <LineId Id="148" Count="0" />
+      <LineId Id="160" Count="2" />
+      <LineId Id="172" Count="0" />
+      <LineId Id="158" Count="0" />
+      <LineId Id="150" Count="1" />
+      <LineId Id="149" Count="0" />
+      <LineId Id="173" Count="0" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="116" Count="11" />
+      <LineId Id="115" Count="0" />
+      <LineId Id="175" Count="0" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="95" Count="2" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="15" Count="1" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="178" Count="0" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="76" Count="6" />
+      <LineId Id="87" Count="1" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="85" Count="1" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="179" Count="2" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="182" Count="0" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="32" Count="0" />
+    </LineIds>
+    <LineIds Name="Axis.PrepareCoupling">
+      <LineId Id="5" Count="1" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="10" Count="1" />
+    </LineIds>
+    <LineIds Name="Axis.PrepareDecoupling">
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="Axis.StartCoupling">
+      <LineId Id="5" Count="0" />
+      <LineId Id="11" Count="1" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="7" Count="1" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="Axis.StartDecoupling">
+      <LineId Id="6" Count="8" />
+      <LineId Id="16" Count="1" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="Axis.StartHoming">
+      <LineId Id="6" Count="0" />
+      <LineId Id="11" Count="1" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="13" Count="1" />
+      <LineId Id="16" Count="1" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>
